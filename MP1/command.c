@@ -5,6 +5,7 @@
 #include <sys/wait.h>
 #include <sys/time.h>
 #include <sys/stat.h>
+#include <sys/types.h>
 #include "command.h"
 #include "input.h"
 #include "hop.h"
@@ -329,21 +330,18 @@ void execute_unalias(char *args[])
     fprintf(stderr, "Unalias command not implemented\n");
 }
 
-void execute_umask(char *args[])
-{
-    if (args[1] == NULL)
-    {
+void execute_umask(char *args[]) {
+    if (args[1] == NULL) {
         mode_t current_mask = umask(0);
         umask(current_mask);
         printf("%04o\n", current_mask);
-    }
-    else
-    {
+    } else {
         mode_t new_mask;
-        sscanf(args[1], "%ho", &new_mask);
+        sscanf(args[1], "%o", &new_mask);  // Correct format specifier for mode_t
         umask(new_mask);
     }
 }
+
 
 void execute_read(char *args[])
 {

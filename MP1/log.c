@@ -4,7 +4,11 @@
 #include <unistd.h>
 #include <limits.h>   // For PATH_MAX
 #include "log.h"
-#include "command.h"  // To use your existing execute_command function
+#include "command.h"
+
+#ifndef PATH_MAX
+#define PATH_MAX 4096  // Define PATH_MAX if it's not defined
+#endif
 
 extern char shell_start_dir[PATH_MAX];  // Global variable storing the shell's start directory
 
@@ -12,8 +16,13 @@ extern char shell_start_dir[PATH_MAX];  // Global variable storing the shell's s
 
 // Helper function to get the full path of the log file
 void get_log_file_path(char *log_file_path) {
-    snprintf(log_file_path, PATH_MAX, "%s/command_log.txt", shell_start_dir);
+    int result = snprintf(log_file_path, PATH_MAX, "%s/command_log.txt", shell_start_dir);
+    if (result >= PATH_MAX || result < 0) {
+        fprintf(stderr, "Error: Path length exceeds maximum allowed length\n");
+        exit(EXIT_FAILURE);
+    }
 }
+
 
 void log_command(const char *command) {
     char log_file_path[PATH_MAX];
