@@ -1,4 +1,3 @@
-echo "hello world" > newfile.txt
 echo "your mother is gay" >> newfile.txt
 wc < newfile.txt
 wc < newfile.txt > result.txt
@@ -13,3 +12,4 @@ echo "hello world" | wc -l
 echo "1 2 3 4 5" | tr " " | wc
 echo "hello world" | tr "e" "a"
 echo "hello world" | tr "el" "12"
+make clean
