@@ -26,16 +26,15 @@ int has_permission(char *path, int is_dir) {
     }
 }
 
-void search_directory(char *base_path, char *search_name, int search_files, int search_dirs, int execute_flag) {
+int search_directory(char *base_path, char *search_name, int search_files, int search_dirs, int execute_flag, int *found) {
     DIR *dir = opendir(base_path);
     if (dir == NULL) {
         perror("Error opening directory");
-        return;
+        return 0;
     }
 
     struct dirent *entry;
     char path[1024];
-    int match_found = 0;
     int single_match = 0;
     char single_match_path[1024];
     int single_match_is_dir = 0;
@@ -48,12 +47,15 @@ void search_directory(char *base_path, char *search_name, int search_files, int 
         snprintf(path, sizeof(path), "%s/%s", base_path, entry->d_name);
 
         struct stat path_stat;
-        stat(path, &path_stat);
+        if (stat(path, &path_stat) == -1) {
+            perror("Error getting file status");
+            continue;
+        }
 
         if (S_ISDIR(path_stat.st_mode)) {
             if (strcmp(entry->d_name, search_name) == 0 && search_dirs) {
                 print_relative_path(base_path, path, 1);
-                match_found = 1;
+                *found = 1;
 
                 if (single_match == 0) {
                     single_match = 1;
@@ -64,11 +66,11 @@ void search_directory(char *base_path, char *search_name, int search_files, int 
                 }
             }
 
-            search_directory(path, search_name, search_files, search_dirs, execute_flag);
+            search_directory(path, search_name, search_files, search_dirs, execute_flag, found);
         } else if (S_ISREG(path_stat.st_mode)) {
             if (strcmp(entry->d_name, search_name) == 0 && search_files) {
                 print_relative_path(base_path, path, 0);
-                match_found = 1;
+                *found = 1;
 
                 if (single_match == 0) {
                     single_match = 1;
@@ -82,9 +84,8 @@ void search_directory(char *base_path, char *search_name, int search_files, int 
     }
     closedir(dir);
 
-    if (!match_found) {
-        printf("No match found!\n");
-    } else if (single_match == 1 && execute_flag) {
+    // Handle -e flag execution if only a single match was found
+    if (single_match == 1 && execute_flag) {
         if (has_permission(single_match_path, single_match_is_dir)) {
             if (single_match_is_dir) {
                 if (chdir(single_match_path) == 0) {
@@ -108,12 +109,15 @@ void search_directory(char *base_path, char *search_name, int search_files, int 
             printf("Missing permissions for task!\n");
         }
     }
+
+    return *found;
 }
 
 void execute_seek(char *args[]) {
     int search_files = 1, search_dirs = 1, execute_flag = 0;
     char *search_name = NULL;
     char *target_directory = ".";
+    int found = 0;
 
     for (int i = 1; args[i] != NULL; i++) {
         if (args[i][0] == '-') {
@@ -144,5 +148,9 @@ void execute_seek(char *args[]) {
         return;
     }
 
-    search_directory(target_directory, search_name, search_files, search_dirs, execute_flag);
+    search_directory(target_directory, search_name, search_files, search_dirs, execute_flag, &found);
+
+    if (!found) {
+        printf("No match found!\n");
+    }
 }

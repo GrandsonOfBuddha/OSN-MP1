@@ -6,6 +6,7 @@
 #include <sys/time.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <fcntl.h>
 #include "command.h"
 #include "input.h"
 #include "hop.h"
@@ -14,16 +15,27 @@
 #include "signal.h"
 #include "proclore.h"
 #include "seek.h"
+#include "redirection.h"
+#include "pipe.h"
 
 static char prev_dir[1024] = "";
 
+
 void execute_command(char *input)
 {
+    if (contains_pipe(input))
+    {
+        execute_pipe(input);
+        return;
+    }
     char *args[1024];
     char *token;
     int i = 0;
     int is_builtin = 0; // Flag to check if a command is built-in
 
+    int in_redir = -1, out_redir = -1, append_redir = -1; // Redirection flags
+
+    // Split the input into arguments
     token = strtok(input, " ");
     while (token != NULL)
     {
@@ -93,6 +105,11 @@ void execute_command(char *input)
         execute_reveal(args);
         is_builtin = 1;
     }
+    else if (strcmp(args[0], "tr") == 0)
+    {
+        execute_tr(args);
+        return;
+    }
     else if (strcmp(args[0], "proclore") == 0)
     {
         if (args[1] == NULL)
@@ -142,9 +159,33 @@ void execute_command(char *input)
             args[i - 1] = NULL; // Remove '&' from arguments
         }
 
+        // Handle I/O redirection
+        handle_io_redirection(args, &in_redir, &out_redir, &append_redir);
+
         pid_t pid = fork();
         if (pid == 0)
         { // Child process
+            // Handle input redirection
+            if (in_redir != -1)
+            {
+                dup2(in_redir, STDIN_FILENO);
+                close(in_redir);
+            }
+
+            // Handle output redirection
+            if (out_redir != -1)
+            {
+                dup2(out_redir, STDOUT_FILENO);
+                close(out_redir);
+            }
+
+            // Handle append redirection (>>)
+            if (append_redir != -1)
+            {
+                dup2(append_redir, STDOUT_FILENO);
+                close(append_redir);
+            }
+
             if (execvp(args[0], args) == -1)
             {
                 fprintf(stderr, "ERROR: '%s' is not a valid command\n", args[0]);
@@ -249,7 +290,6 @@ void execute_background_command(char *command)
     }
 }
 
-// Built-in command implementations...
 
 void execute_cd(char *args[])
 {
@@ -330,18 +370,21 @@ void execute_unalias(char *args[])
     fprintf(stderr, "Unalias command not implemented\n");
 }
 
-void execute_umask(char *args[]) {
-    if (args[1] == NULL) {
+void execute_umask(char *args[])
+{
+    if (args[1] == NULL)
+    {
         mode_t current_mask = umask(0);
         umask(current_mask);
         printf("%04o\n", current_mask);
-    } else {
+    }
+    else
+    {
         mode_t new_mask;
-        sscanf(args[1], "%o", &new_mask);  // Correct format specifier for mode_t
+        sscanf(args[1], "%o", &new_mask); // Correct format specifier for mode_t
         umask(new_mask);
     }
 }
-
 
 void execute_read(char *args[])
 {
@@ -361,5 +404,39 @@ void execute_read(char *args[])
     else
     {
         perror("ERROR");
+    }
+}
+
+void execute_tr(char *args[])
+{
+    if (args[1] == NULL || args[2] == NULL)
+    {
+        fprintf(stderr, "ERROR: tr requires two arguments\n");
+        return;
+    }
+
+    char *set1 = args[1];
+    char *set2 = args[2];
+
+    // Check if both sets have the same length
+    if (strlen(set1) != strlen(set2))
+    {
+        fprintf(stderr, "ERROR: tr sets must be the same length\n");
+        return;
+    }
+
+    int c;
+    while ((c = getchar()) != EOF)
+    {
+        char *pos = strchr(set1, c);
+        if (pos)
+        {
+            // Replace character with corresponding character from set2
+            putchar(set2[pos - set1]);
+        }
+        else
+        {
+            putchar(c); // Print character as is if it's not in set1
+        }
     }
 }

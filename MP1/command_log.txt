@@ -1,15 +1,15 @@
-echo 3
-echo 4
-echo 5
-echo 6
-echo 7
-echo 8
-echo 9
-echo 10
-echo 11
-echo 12
-echo 13
-echo 14
-echo 15
-echo 16
-make clean
+echo "hello world" > newfile.txt
+echo "your mother is gay" >> newfile.txt
+wc < newfile.txt
+wc < newfile.txt > result.txt
+rm newfile.txt
+rm result.txt
+echo "hello world" | wc
+echo "1 2 3 4 5" | tr ' ' '\n' | wc -l
+echo "1 2 3 4 5" | tr ' ' '\n' | wc -1
+clear
+echo "1 2 3 4 5" | tr " " "\n" | wc -l
+echo "hello world" | wc -l
+echo "1 2 3 4 5" | tr " " | wc
+echo "hello world" | tr "e" "a"
+echo "hello world" | tr "el" "12"
