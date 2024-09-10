@@ -1,15 +1,15 @@
-echo "your mother is gay" >> newfile.txt
-wc < newfile.txt
-wc < newfile.txt > result.txt
-rm newfile.txt
-rm result.txt
-echo "hello world" | wc
-echo "1 2 3 4 5" | tr ' ' '\n' | wc -l
-echo "1 2 3 4 5" | tr ' ' '\n' | wc -1
-clear
 echo "1 2 3 4 5" | tr " " "\n" | wc -l
 echo "hello world" | wc -l
 echo "1 2 3 4 5" | tr " " | wc
 echo "hello world" | tr "e" "a"
 echo "hello world" | tr "el" "12"
 make clean
+find . -type f -print | sort | head -n 5 | tee output.txt | wc -l > count.txt
+ls | sort
+ls | grep "file" | wc -l
+ls | grep ".c" | wc -l
+ls | grep "pipe" | wc -l
+echo "helo world" | wc > output.txt
+reveala
+mk_hop testdir
+hop_seek mytestdir

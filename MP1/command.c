@@ -17,12 +17,13 @@
 #include "seek.h"
 #include "redirection.h"
 #include "pipe.h"
+#include "myshrc.h"
 
 static char prev_dir[1024] = "";
 
-
 void execute_command(char *input)
 {
+    input = check_alias(input);
     if (contains_pipe(input))
     {
         execute_pipe(input);
@@ -114,11 +115,23 @@ void execute_command(char *input)
     {
         if (args[1] == NULL)
         {
-            execute_proclore(NULL); // No argument, use the shell's PID
+            execute_proclore(NULL); // No argument, use thea shell's PID
         }
         else
         {
             execute_proclore(args[1]); // Use the provided PID
+        }
+        return;
+    }
+    else if (strcmp(args[0], "mk_hop") == 0 || strcmp(args[0], "hop_seek") == 0)
+    {
+        if (args[1] != NULL)
+        {
+            execute_function(args[0], args[1]); // Execute mk_hop or hop_seek
+        }
+        else
+        {
+            printf("Function requires an argument.\n");
         }
         return;
     }
@@ -289,7 +302,6 @@ void execute_background_command(char *command)
         // Signal handler will take care of background process completion
     }
 }
-
 
 void execute_cd(char *args[])
 {

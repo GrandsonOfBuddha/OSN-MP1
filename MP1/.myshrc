@@ -1,0 +1,16 @@
+# Aliases
+alias reveala=reveal -a
+alias home=hop ~
+
+# Functions
+mk_hop() 
+{ 
+    mkdir "$1"
+    hop "$1"
+}
+
+hop_seek()
+{
+    hop "$1"
+    seek "$1"
+}

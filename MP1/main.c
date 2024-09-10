@@ -15,6 +15,7 @@ int main() {
         perror("Error getting shell start directory");
         exit(EXIT_FAILURE);
     }
+    load_myshrc();  // Load aliases and functions from .myshrc
     initialize_signal_handlers(); // Set up the signal handler at the start of the program
     initialize_home_directory();  // Initialize the shell's home directory
     char input[1024];
