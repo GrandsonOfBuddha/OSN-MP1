@@ -7,6 +7,7 @@
 #include "command.h"
 #include "mysignal.h"
 #include "hop.h"
+#include "myshrc.h"
 
 char shell_start_dir[PATH_MAX];
 

@@ -1,16 +1,18 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>  // For chdir and getcwd
+#include <unistd.h> // For chdir and getcwd
 #include <sys/stat.h>
 #include "myshrc.h"
-#include "command.h"  // Include to execute the original command functions
-#include "reveal.h"   // For reveal command
+#include "command.h" // Include to execute the original command functions
+#include "reveal.h"  // For reveal command
+#include "seek.h"    // For seek command
 
 #define ALIAS_COUNT 100
 #define ALIAS_MAX_LENGTH 100
 
-typedef struct {
+typedef struct
+{
     char alias[ALIAS_MAX_LENGTH];
     char command[ALIAS_MAX_LENGTH];
 } Alias;
@@ -18,23 +20,31 @@ typedef struct {
 Alias aliases[ALIAS_COUNT];
 int alias_count = 0;
 
+static char shell_home_dir[1024] = ""; // Home directory of the shell
+static char prev_dir[1024] = "";       // Previous directory for `-` flag
+
 // Load .myshrc file to setup aliases and functions
-void load_myshrc() {
+void load_myshrc()
+{
     FILE *file = fopen(".myshrc", "r");
-    if (file == NULL) {
+    if (file == NULL)
+    {
         // If file does not exist, simply return
         return;
     }
 
     char line[256];
-    while (fgets(line, sizeof(line), file)) {
-        line[strcspn(line, "\n")] = 0;  // Remove newline
+    while (fgets(line, sizeof(line), file))
+    {
+        line[strcspn(line, "\n")] = 0; // Remove newline
 
         // Parse alias lines
-        if (strncmp(line, "alias", 5) == 0) {
+        if (strncmp(line, "alias", 5) == 0)
+        {
             char *alias_name = strtok(line + 6, "=");
             char *alias_command = strtok(NULL, "=");
-            if (alias_name && alias_command) {
+            if (alias_name && alias_command)
+            {
                 strcpy(aliases[alias_count].alias, alias_name);
                 strcpy(aliases[alias_count].command, alias_command);
                 alias_count++;
@@ -46,50 +56,136 @@ void load_myshrc() {
 }
 
 // Check if the command matches any alias and replace it with the real command
-char *check_alias(char *command) {
-    for (int i = 0; i < alias_count; i++) {
-        if (strcmp(command, aliases[i].alias) == 0) {
+char *check_alias(char *command)
+{
+    for (int i = 0; i < alias_count; i++)
+    {
+        if (strcmp(command, aliases[i].alias) == 0)
+        {
             return aliases[i].command;
         }
     }
-    return command;  // Return original command if no alias matches
+    return command; // Return original command if no alias matches
 }
 
-// Execute custom functions like mk_hop and hop_reveal
-void execute_function(char *func_name, char *arg) {
-    if (strcmp(func_name, "mk_hop") == 0) {
+// Handle special paths (., .., ~, -) in hop commands
+char *handle_special_paths(char *path)
+{
+    static char resolved_path[1024];
+
+    if (strcmp(path, "~") == 0)
+    {
+        // Set path to shell home directory
+        path = shell_home_dir;
+    }
+    else if (strcmp(path, "-") == 0)
+    {
+        // Switch to previous directory
+        if (strlen(prev_dir) == 0)
+        {
+            fprintf(stderr, "ERROR: No previous directory\n");
+            return NULL;
+        }
+        path = prev_dir;
+    }
+    else if (path[0] == '~')
+    {
+        // Expand ~ to home directory path
+        snprintf(resolved_path, sizeof(resolved_path), "%s%s", shell_home_dir, path + 1);
+        path = resolved_path;
+    }
+
+    return path;
+}
+
+// Execute custom functions like mk_hop, hop_reveal, and hop_seek
+void execute_function(char *func_name, char *arg)
+{
+    // Resolve special paths
+    char *path = handle_special_paths(arg);
+    if (path == NULL)
+        return;
+
+    if (strcmp(func_name, "mk_hop") == 0)
+    {
         // Create the directory
-        if (mkdir(arg, 0755) == 0) {
+        if (mkdir(path, 0755) == 0)
+        {
             // Hop into the created directory
-            if (chdir(arg) == 0) {
+            if (chdir(path) == 0)
+            {
                 char cwd[1024];
-                if (getcwd(cwd, sizeof(cwd)) != NULL) {
+                if (getcwd(cwd, sizeof(cwd)) != NULL)
+                {
                     printf("Changed directory to %s\n", cwd);
-                } else {
+                    strcpy(prev_dir, cwd); // Update the previous directory
+                }
+                else
+                {
                     perror("getcwd() error");
                 }
-            } else {
+            }
+            else
+            {
                 perror("chdir() error");
             }
-        } else {
+        }
+        else
+        {
             perror("mkdir() error");
         }
-    } else if (strcmp(func_name, "hop_reveal") == 0) {
+    }
+    else if (strcmp(func_name, "hop_reveal") == 0)
+    {
         // Change into the directory
-        if (chdir(arg) == 0) {
+        if (chdir(path) == 0)
+        {
             char cwd[1024];
-            if (getcwd(cwd, sizeof(cwd)) != NULL) {
+            if (getcwd(cwd, sizeof(cwd)) != NULL)
+            {
                 printf("Changed directory to %s\n", cwd);
-            } else {
+                strcpy(prev_dir, cwd); // Update the previous directory
+            }
+            else
+            {
                 perror("getcwd() error");
             }
             // Call reveal to show files in the directory
             char *reveal_args[] = {"reveal", ".", NULL};
-            execute_reveal(reveal_args);  // Call the reveal command to list files in the current directory
-        } else {
+            execute_reveal(reveal_args); // Call the reveal command to list files in the current directory
+        }
+        else
+        {
             perror("chdir() error");
         }
-    } else {
+    }
+    else if (strcmp(func_name, "hop_seek") == 0)
+    {
+        // Change into the directory and call seek
+        if (chdir(path) == 0)
+        {
+            char cwd[1024];
+            if (getcwd(cwd, sizeof(cwd)) != NULL)
+            {
+                printf("Changed directory to %s\n", cwd);
+                strcpy(prev_dir, cwd); // Update the previous directory
+            }
+            else
+            {
+                perror("getcwd() error");
+            }
+            // Call seek to search files or directories in the current directory
+            char *seek_args[] = {"seek", arg, ".", NULL};
+            execute_seek(seek_args); // Call the seek command to search in the current directory
+        }
+        else
+        {
+            perror("chdir() error");
+        }
+    }
+    else
+    {
         printf("Invalid function: %s\n", func_name);
     }
 }
+

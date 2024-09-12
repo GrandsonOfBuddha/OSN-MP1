@@ -26,6 +26,9 @@
 
 static char prev_dir[1024] = "";
 
+#define RED "\033[0;31m"
+#define RESET "\033[0m"
+
 void execute_command(char *input)
 {
     // Don't reset foreground_pid until we know it's a foreground command
@@ -123,7 +126,7 @@ void execute_command(char *input)
         execute_proclore(args[1]);
         return;
     }
-    else if (strcmp(args[0], "mk_hop") == 0 || strcmp(args[0], "hop_reveal") == 0)
+    else if (strcmp(args[0], "mk_hop") == 0 || strcmp(args[0], "hop_reveal") == 0 || strcmp(args[0], "hop_seek") == 0)
     {
         if (args[1] != NULL)
         {
@@ -152,7 +155,7 @@ void execute_command(char *input)
         }
         else
         {
-            printf("Invalid log command\n");
+            printf(RED "Invalid log command\n" RESET);
         }
         return;
     }
@@ -242,7 +245,7 @@ void execute_command(char *input)
 
             if (execvp(args[0], args) == -1)
             {
-                fprintf(stderr, "ERROR: '%s' is not a valid command\n", args[0]);
+                fprintf(stderr, RED "ERROR: '%s' is not a valid command\n" RESET, args[0]);
             }
             exit(EXIT_FAILURE);
         }

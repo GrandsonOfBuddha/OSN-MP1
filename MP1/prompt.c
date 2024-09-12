@@ -4,6 +4,10 @@
 #include <string.h>
 #include "prompt.h"
 
+// ANSI color codes
+#define GREEN "\033[0;32m"
+#define RESET "\033[0m"
+
 void display_prompt() {
     char cwd[1024];
     char hostname[1024];
@@ -20,11 +24,11 @@ void display_prompt() {
         return;
     }
 
-    // Replace home directory in the prompt with '~'
+    // Replace home directory in the prompt with '~' and print the prompt in green
     if (home != NULL && strstr(cwd, home) == cwd) {
-        printf("%s@%s:~%s$ ", username, hostname, cwd + strlen(home));
+        printf(GREEN "%s@%s:~%s$ " RESET, username, hostname, cwd + strlen(home));
     } else {
-        printf("%s@%s:%s$ ", username, hostname, cwd);
+        printf(GREEN "%s@%s:%s$ " RESET, username, hostname, cwd);
     }
 
     fflush(stdout); // Ensure the prompt is displayed

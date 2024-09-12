@@ -12,3 +12,9 @@ func hop_reveal()
     hop "$1"
     reveal .
 }
+
+func hop_seek()
+{
+    hop "$1"
+    seek . "$1"
+}

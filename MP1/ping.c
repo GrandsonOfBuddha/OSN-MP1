@@ -7,7 +7,7 @@
 #include "ping.h"
 #include "activities.h"
 
-pid_t foreground_pid = -1; // Global variable to track the current foreground process
+pid_t foreground_pid = -1; // Track the current foreground process
 
 // Function to handle the ping command
 void execute_ping(char *args[]) {
@@ -17,9 +17,8 @@ void execute_ping(char *args[]) {
     }
 
     pid_t pid = atoi(args[1]);
-    int signal_num = atoi(args[2]) % 32;  // Take modulo 32 of the signal number
+    int signal_num = atoi(args[2]) % 32;  // Modulo 32 to stay within valid signal range
 
-    // Check if process exists by sending signal 0 (it doesn't send any signal but checks existence)
     if (kill(pid, 0) == -1) {
         if (errno == ESRCH) {
             printf("No such process found\n");
@@ -29,7 +28,6 @@ void execute_ping(char *args[]) {
         return;
     }
 
-    // Send the signal
     if (kill(pid, signal_num) == 0) {
         printf("Sent signal %d to process with pid %d\n", signal_num, pid);
     } else {
@@ -40,17 +38,21 @@ void execute_ping(char *args[]) {
 // Signal handler for SIGINT (Ctrl-C)
 void handle_sigint(int sig) {
     if (foreground_pid > 0) {
+        // If there is a foreground process, send it the SIGINT signal
         kill(foreground_pid, SIGINT);
     } else {
+        // If no foreground process is running, do nothing (prevents shell from exiting)
         printf("\nNo foreground process to interrupt\n");
+        fflush(stdout);  // Ensure the prompt is re-displayed correctly
     }
 }
 
 // Signal handler for SIGTSTP (Ctrl-Z)
 void handle_sigtstp(int sig) {
     if (foreground_pid > 0) {
-        kill(foreground_pid, SIGTSTP);  // Suspend the foreground process
-        update_process_state(foreground_pid, 0, 0); // Mark process as stopped and in background
+        // Send SIGTSTP to the foreground process to suspend it
+        kill(foreground_pid, SIGTSTP);
+        update_process_state(foreground_pid, 0, 0);  // Mark process as stopped
         printf("\nForeground process stopped\n");
     } else {
         printf("\nNo foreground process to stop\n");
@@ -60,13 +62,26 @@ void handle_sigtstp(int sig) {
 // Signal handler for SIGQUIT (Ctrl-D)
 void handle_sigquit(int sig) {
     printf("\nExiting shell\n");
-    // You can add logic to kill all child processes here
+    // Add logic to kill any background processes here if necessary
     exit(0);
 }
 
-// Setup signal handlers for Ctrl-C, Ctrl-Z, Ctrl-D
+// Set up signal handlers for Ctrl-C, Ctrl-Z, and Ctrl-D
 void setup_signal_handlers() {
-    signal(SIGINT, handle_sigint);    // Ctrl-C
-    signal(SIGTSTP, handle_sigtstp);  // Ctrl-Z
-    signal(SIGQUIT, handle_sigquit);  // Ctrl-D
+    struct sigaction sa;
+
+    // SIGINT (Ctrl-C) handler
+    sa.sa_handler = handle_sigint;
+    sigemptyset(&sa.sa_mask);
+    sa.sa_flags = SA_RESTART;
+    sigaction(SIGINT, &sa, NULL);
+
+    // SIGTSTP (Ctrl-Z) handler
+    sa.sa_handler = handle_sigtstp;
+    sigaction(SIGTSTP, &sa, NULL);
+
+    // SIGQUIT (Ctrl-D) handler
+    sa.sa_handler = handle_sigquit;
+    sigaction(SIGQUIT, &sa, NULL);
 }
+
