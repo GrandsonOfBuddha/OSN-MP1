@@ -1,16 +1,14 @@
-# Aliases
-alias reveala=reveal -a
-alias home=hop ~
+alias home = hop ~
+alias reveall = reveal -l
 
-# Functions
-mk_hop() 
-{ 
+func mk_hop()
+{
     mkdir "$1"
     hop "$1"
 }
 
-hop_seek()
+func hop_reveal()
 {
     hop "$1"
-    seek "$1"
+    reveal .
 }

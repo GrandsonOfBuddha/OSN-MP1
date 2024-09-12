@@ -12,28 +12,35 @@
 #include "hop.h"
 #include "reveal.h"
 #include "log.h"
-#include "signal.h"
+#include "mysignal.h"
 #include "proclore.h"
 #include "seek.h"
 #include "redirection.h"
 #include "pipe.h"
 #include "myshrc.h"
+#include "activities.h"
+#include "ping.h"
+#include "fg_bg.h"
+#include "neonate.h"
+#include "iman.h"
 
 static char prev_dir[1024] = "";
 
 void execute_command(char *input)
 {
+    // Don't reset foreground_pid until we know it's a foreground command
     input = check_alias(input);
+
     if (contains_pipe(input))
     {
         execute_pipe(input);
         return;
     }
+
     char *args[1024];
     char *token;
     int i = 0;
-    int is_builtin = 0; // Flag to check if a command is built-in
-
+    int is_builtin = 0;                                   // Flag to check if a command is built-in
     int in_redir = -1, out_redir = -1, append_redir = -1; // Redirection flags
 
     // Split the input into arguments
@@ -54,57 +61,57 @@ void execute_command(char *input)
     if (strcmp(args[0], "cd") == 0)
     {
         execute_cd(args);
-        is_builtin = 1;
+        return;
     }
     else if (strcmp(args[0], "pwd") == 0)
     {
         execute_pwd();
-        is_builtin = 1;
+        return;
     }
     else if (strcmp(args[0], "export") == 0)
     {
         execute_export(args);
-        is_builtin = 1;
+        return;
     }
     else if (strcmp(args[0], "unset") == 0)
     {
         execute_unset(args);
-        is_builtin = 1;
+        return;
     }
     else if (strcmp(args[0], "exit") == 0)
     {
         execute_exit();
-        is_builtin = 1;
+        return;
     }
     else if (strcmp(args[0], "alias") == 0)
     {
         execute_alias(args);
-        is_builtin = 1;
+        return;
     }
     else if (strcmp(args[0], "unalias") == 0)
     {
         execute_unalias(args);
-        is_builtin = 1;
+        return;
     }
     else if (strcmp(args[0], "umask") == 0)
     {
         execute_umask(args);
-        is_builtin = 1;
+        return;
     }
     else if (strcmp(args[0], "read") == 0)
     {
         execute_read(args);
-        is_builtin = 1;
+        return;
     }
     else if (strcmp(args[0], "hop") == 0)
     {
         execute_hop(args);
-        is_builtin = 1;
+        return;
     }
     else if (strcmp(args[0], "reveal") == 0)
     {
         execute_reveal(args);
-        is_builtin = 1;
+        return;
     }
     else if (strcmp(args[0], "tr") == 0)
     {
@@ -113,21 +120,14 @@ void execute_command(char *input)
     }
     else if (strcmp(args[0], "proclore") == 0)
     {
-        if (args[1] == NULL)
-        {
-            execute_proclore(NULL); // No argument, use thea shell's PID
-        }
-        else
-        {
-            execute_proclore(args[1]); // Use the provided PID
-        }
+        execute_proclore(args[1]);
         return;
     }
-    else if (strcmp(args[0], "mk_hop") == 0 || strcmp(args[0], "hop_seek") == 0)
+    else if (strcmp(args[0], "mk_hop") == 0 || strcmp(args[0], "hop_reveal") == 0)
     {
         if (args[1] != NULL)
         {
-            execute_function(args[0], args[1]); // Execute mk_hop or hop_seek
+            execute_function(args[0], args[1]);
         }
         else
         {
@@ -154,15 +154,61 @@ void execute_command(char *input)
         {
             printf("Invalid log command\n");
         }
-        is_builtin = 1;
+        return;
     }
     else if (strcmp(args[0], "seek") == 0)
     {
         execute_seek(args);
         return;
     }
+    else if (strcmp(args[0], "ping") == 0)
+    {
+        execute_ping(args); // Call the function to send a signal to a process
+        return;
+    }
+    else if (strcmp(args[0], "activities") == 0)
+    {
+        print_activities(); // Call the function to print the list of activities
+        return;
+    }
+    else if (strcmp(args[0], "fg") == 0)
+    {
+        if (args[1] == NULL)
+        {
+            printf("Usage: fg <pid>\n");
+        }
+        else
+        {
+            int pid = atoi(args[1]); // Convert the argument to an integer (process ID)
+            fg_command(pid);         // Call the fg command
+        }
+        return; // Early return
+    }
+    else if (strcmp(args[0], "bg") == 0)
+    {
+        if (args[1] == NULL)
+        {
+            printf("Usage: bg <pid>\n");
+        }
+        else
+        {
+            int pid = atoi(args[1]); // Convert the argument to an integer (process ID)
+            bg_command(pid);         // Call the bg command
+        }
+        return; // Early return
+    }
+    else if (strcmp(args[0], "neonate") == 0)
+    {
+        execute_neonate(args); // Call the neonate function
+        return;                // Exit after executing neonate
+    }
+    else if (strcmp(args[0], "iMan") == 0)
+    {
+        execute_iman(args); // Call iMan command
+        return;             // Exit after executing iMan
+    }
 
-    // If it's an external command, execute it
+    // Handle external commands
     if (!is_builtin)
     {
         int is_background = 0;
@@ -178,21 +224,16 @@ void execute_command(char *input)
         pid_t pid = fork();
         if (pid == 0)
         { // Child process
-            // Handle input redirection
             if (in_redir != -1)
             {
                 dup2(in_redir, STDIN_FILENO);
                 close(in_redir);
             }
-
-            // Handle output redirection
             if (out_redir != -1)
             {
                 dup2(out_redir, STDOUT_FILENO);
                 close(out_redir);
             }
-
-            // Handle append redirection (>>)
             if (append_redir != -1)
             {
                 dup2(append_redir, STDOUT_FILENO);
@@ -213,20 +254,26 @@ void execute_command(char *input)
         { // Parent process
             if (is_background)
             {
-                printf("%d\n", pid); // Print the PID of the background process
-                // No need to wait; signal handler will handle when the process finishes
+                // Background process: add to the process list as running in the background
+                add_process(pid, args[0], 0);    // Mark as background process
+                printf("%d\n", pid);             // Print the PID of the background process
+                update_process_state(pid, 1, 0); // Mark process as running in the background
             }
             else
             {
-                // Foreground process: Measure time taken
+                // Foreground process: add to process list and wait for completion
+                add_process(pid, args[0], 1); // Mark as foreground process
+                foreground_pid = pid;
                 struct timeval start, end;
                 gettimeofday(&start, NULL);
 
-                waitpid(pid, NULL, 0); // Wait for the child process to complete
+                waitpid(pid, NULL, 0); // Wait for the foreground process to complete
 
+                foreground_pid = -1;             // Reset after process completion
+                update_process_state(pid, 0, 0); // Mark process as stopped after completion
                 gettimeofday(&end, NULL);
-                long seconds = end.tv_sec - start.tv_sec;
 
+                long seconds = end.tv_sec - start.tv_sec;
                 if (seconds > 2)
                 {
                     printf("Process '%s' took %lds\n", args[0], seconds);
@@ -274,6 +321,7 @@ void execute_background_command(char *command)
     pid_t pid = fork();
     if (pid == 0)
     { // Child process
+        // Execute the command
         char *args[1024];
         char *token;
         int i = 0;
@@ -288,18 +336,14 @@ void execute_background_command(char *command)
 
         if (execvp(args[0], args) == -1)
         {
-            perror("ERROR");
+            perror("Error executing command");
         }
         exit(EXIT_FAILURE);
     }
-    else if (pid < 0)
-    { // Fork failed
-        perror("fork() error");
-    }
-    else
-    {                                // Parent process
-        printf("[%d] %d\n", 1, pid); // Print the PID of the background process
-        // Signal handler will take care of background process completion
+    else if (pid > 0)
+    {                                 // Parent process
+        add_process(pid, command, 0); // Track the process as background
+        printf("[%d] %d\n", 1, pid);  // Print the PID of the background process
     }
 }
 

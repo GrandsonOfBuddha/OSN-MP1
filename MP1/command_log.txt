@@ -1,15 +1,15 @@
-echo "1 2 3 4 5" | tr " " "\n" | wc -l
-echo "hello world" | wc -l
-echo "1 2 3 4 5" | tr " " | wc
-echo "hello world" | tr "e" "a"
-echo "hello world" | tr "el" "12"
-make clean
-find . -type f -print | sort | head -n 5 | tee output.txt | wc -l > count.txt
-ls | sort
-ls | grep "file" | wc -l
-ls | grep ".c" | wc -l
-ls | grep "pipe" | wc -l
-echo "helo world" | wc > output.txt
-reveala
-mk_hop testdir
-hop_seek mytestdir
+ping 12339 9
+sleep 300 &
+ping 13147 15
+ping 13484 20
+bg 13484
+fg 13484
+proclore
+neonate -n 3
+iMan sleep
+seek newfolder
+seek newfolder ./testdir/doe
+seek -d newfolder ./testdiir/doe
+seek -d newdoler /testdir/doe
+seek -d newfolder /testdir/doe
+seek -d newfolder ./testdir/doe

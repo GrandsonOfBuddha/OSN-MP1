@@ -5,7 +5,7 @@
 #include <sys/stat.h>
 #include "myshrc.h"
 #include "command.h"  // Include to execute the original command functions
-#include "seek.h"
+#include "reveal.h"   // For reveal command
 
 #define ALIAS_COUNT 100
 #define ALIAS_MAX_LENGTH 100
@@ -55,7 +55,7 @@ char *check_alias(char *command) {
     return command;  // Return original command if no alias matches
 }
 
-// Execute custom functions like mk_hop and hop_seek
+// Execute custom functions like mk_hop and hop_reveal
 void execute_function(char *func_name, char *arg) {
     if (strcmp(func_name, "mk_hop") == 0) {
         // Create the directory
@@ -74,7 +74,7 @@ void execute_function(char *func_name, char *arg) {
         } else {
             perror("mkdir() error");
         }
-    } else if (strcmp(func_name, "hop_seek") == 0) {
+    } else if (strcmp(func_name, "hop_reveal") == 0) {
         // Change into the directory
         if (chdir(arg) == 0) {
             char cwd[1024];
@@ -83,9 +83,9 @@ void execute_function(char *func_name, char *arg) {
             } else {
                 perror("getcwd() error");
             }
-            // Call seek to find files in the directory
-            char *seek_args[] = {"seek", arg, NULL};
-            execute_seek(seek_args);  // Call the seek command to search within the directory
+            // Call reveal to show files in the directory
+            char *reveal_args[] = {"reveal", ".", NULL};
+            execute_reveal(reveal_args);  // Call the reveal command to list files in the current directory
         } else {
             perror("chdir() error");
         }
