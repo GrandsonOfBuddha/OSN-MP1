@@ -4,8 +4,11 @@
 #include <errno.h>
 #include <string.h>
 #include <unistd.h>
+#include <sys/types.h>
+#include <sys/wait.h>
 #include "ping.h"
 #include "activities.h"
+#include "prompt.h"
 
 pid_t foreground_pid = -1; // Track the current foreground process
 
@@ -49,20 +52,26 @@ void handle_sigint(int sig) {
 void handle_sigtstp(int sig) {
     if (foreground_pid > 0) {
         // Send SIGTSTP to the foreground process
-        kill(foreground_pid, SIGTSTP);
-        update_process_state(foreground_pid, 0, 1); // Mark the process as stopped and in background
-        printf("\nForeground process stopped and moved to background\n");
+        if (kill(foreground_pid, SIGTSTP) == -1) {
+            perror("Failed to send SIGTSTP to the process");
+        } else {
+            // Successfully stopped the process, now update its state
+            update_process_state(foreground_pid, 0, 0); // Mark the process as stopped and in the background
+            printf("\nForeground process [%d] stopped and moved to background\n", foreground_pid);
+        }
+
+        // After stopping, reset the foreground PID
+        foreground_pid = -1;
+
+        // Redisplay the prompt
+        display_prompt();
     } else {
         printf("\nNo foreground process to stop\n");
+        display_prompt();
     }
 }
 
-// Signal handler for SIGQUIT (Ctrl-D)
-void handle_ctrl_d() {
-    printf("\nExiting shell\n");
-    // Add logic to kill all child processes if needed
-    exit(0);
-}
+
 
 // Set up signal handlers for Ctrl-C, Ctrl-Z, and Ctrl-D
 void setup_signal_handlers() {

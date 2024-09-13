@@ -1,15 +1,15 @@
-iMan sleep extrsa
-activities
-iMan exec
-iMan sleep
-neonate -n 2
-sleep 15 &
-fg 18888
-sldknvsldknfs
-hop_reveal ~
-mk_hop newdirectory
 hop ~
 iMan sleep extra
 sleep 10
 sleep
 make clean
+make
+./shell
+sleep 10 &
+activities
+sleep 100
+sleep 5
+iMan sleep
+make 
+[A[A[B[B[B
+nakmake

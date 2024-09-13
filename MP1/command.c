@@ -290,7 +290,7 @@ void process_input(char *input)
 {
     // Check if fgets or the input reading function returned NULL (Ctrl+D is pressed)
     if (input == NULL) {
-        handle_ctrl_d();
+        
     }
 
     char *command;
