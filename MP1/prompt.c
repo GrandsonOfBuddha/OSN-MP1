@@ -24,12 +24,11 @@ void display_prompt() {
         return;
     }
 
-    // Replace home directory in the prompt with '~' and print the prompt in green
     if (home != NULL && strstr(cwd, home) == cwd) {
         printf(GREEN "%s@%s:~%s$ " RESET, username, hostname, cwd + strlen(home));
     } else {
         printf(GREEN "%s@%s:%s$ " RESET, username, hostname, cwd);
     }
 
-    fflush(stdout); // Ensure the prompt is displayed
+    fflush(stdout);
 }
