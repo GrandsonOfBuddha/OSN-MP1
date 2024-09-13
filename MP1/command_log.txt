@@ -1,15 +1,15 @@
-hop ~
-iMan sleep extra
-sleep 10
-sleep
-make clean
-make
-./shell
-sleep 10 &
-activities
 sleep 100
 sleep 5
 iMan sleep
 make 
 [A[A[B[B[B
 nakmake
+ð
+hop ~
+clear
+seek file1.txt
+cat file1.txt
+hop newdirectory
+echo "hello world" >> file1.txt
+kbk;bjkkjbkbk
+iMan exec

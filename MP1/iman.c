@@ -9,20 +9,48 @@
 #define BUFFER_SIZE 8192
 #define REQUEST_SIZE 2048  // Increased size to handle longer strings
 
+// Function to skip HTTP headers and find the start of the content
+char *skip_http_headers(char *response) {
+    char *header_end = strstr(response, "\r\n\r\n");
+    if (header_end) {
+        return header_end + 4;  // Skip over the headers
+    }
+    return response;  // If no headers found, return the response as-is
+}
+
+// Function to remove HTML tags from the content
+void remove_html_tags(char *src) {
+    char *dst = src;
+    int in_tag = 0;  // Flag to track if we're inside an HTML tag
+
+    while (*src) {
+        if (*src == '<') {
+            in_tag = 1;  // Entering an HTML tag
+        } else if (*src == '>') {
+            in_tag = 0;  // Exiting an HTML tag
+            src++;
+            continue;
+        }
+
+        if (!in_tag) {
+            *dst++ = *src;  // Copy only the characters outside of tags
+        }
+
+        src++;
+    }
+    *dst = '\0';  // Null-terminate the string
+}
+
 void fetch_man_page(const char *command_name) {
     int sockfd;
     struct sockaddr_in serveraddr;
     struct hostent *server;
     char buffer[BUFFER_SIZE];
     char request[REQUEST_SIZE];  // Increase the size of the request buffer
-
+    
     // Step 1: Hostname and path formatting
     const char *hostname = "man.he.net";
-    char path_format[1024];
-
-    // Build the path with the command_name
-    snprintf(path_format, sizeof(path_format), "/?topic=%s&section=all", command_name);
-
+    
     // Step 2: Create the socket
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
     if (sockfd < 0) {
@@ -53,25 +81,31 @@ void fetch_man_page(const char *command_name) {
 
     // Step 6: Construct the HTTP GET request using the formatted path
     memset(request, 0, sizeof(request));  // Zero out the request buffer
-    snprintf(request, sizeof(request), 
-             "GET %s HTTP/1.1\r\n"
-             "Host: %s\r\n"
-             "Connection: close\r\n\r\n", path_format, hostname);
+    snprintf(request, sizeof(request), "GET /?topic=%s&section=all HTTP/1.1\r\nHost: man.he.net\r\nUser-Agent: iMan/1.0\r\nConnection: close\r\n\r\n", command_name);
 
     // Step 7: Send the HTTP request to the server
-    if (write(sockfd, request, strlen(request)) < 0) {
+    if (send(sockfd, request, strlen(request), 0) == -1) {
         perror("ERROR writing to socket");
         close(sockfd);
         return;
     }
 
-    // Step 8: Read and print the server's reply
-    memset(buffer, 0, sizeof(buffer));  // Clear the buffer
+    // Step 8: Read and process the server's reply
     int read_bytes;
-    while ((read_bytes = read(sockfd, buffer, sizeof(buffer) - 1)) > 0) {
+    int headers_skipped = 0;
+    while ((read_bytes = recv(sockfd, buffer, BUFFER_SIZE - 1, 0)) > 0) {
         buffer[read_bytes] = '\0';  // Null-terminate the response
-        printf("%s", buffer);       // Print the content
-        memset(buffer, 0, sizeof(buffer));  // Clear buffer for the next read
+
+        if (!headers_skipped) {
+            // Skip the HTTP headers before processing the content
+            char *content_start = skip_http_headers(buffer);
+            remove_html_tags(content_start);  // Remove HTML tags
+            printf("%s", content_start);      // Print the content
+            headers_skipped = 1;
+        } else {
+            remove_html_tags(buffer);  // Remove HTML tags from remaining content
+            printf("%s", buffer);
+        }
     }
 
     if (read_bytes < 0) {

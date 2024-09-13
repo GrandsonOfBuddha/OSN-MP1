@@ -207,7 +207,7 @@ void execute_command(char *input)
     }
     else if (strcmp(args[0], "iMan") == 0)
     {
-        fetch_man_page(args); // Call iMan command
+        fetch_man_page(args[1]); // Call iMan command
         return;             // Exit after executing iMan
     }
 
