@@ -8,6 +8,7 @@
 #include "mysignal.h"
 #include "hop.h"
 #include "myshrc.h"
+#include "ping.h"
 
 char shell_start_dir[PATH_MAX];
 
@@ -16,10 +17,10 @@ int main() {
         perror("Error getting shell start directory");
         exit(EXIT_FAILURE);
     }
-    // setup_signal_handlers();
-    load_myshrc();  // Load aliases and functions from .myshrc
-    initialize_signal_handlers(); // Set up the signal handler at the start of the program
-    initialize_home_directory();  // Initialize the shell's home directory
+    setup_signal_handlers();
+    load_myshrc();
+    initialize_signal_handlers();
+    initialize_home_directory();
     char input[1024];
 
     while (1) {

@@ -38,50 +38,36 @@ void execute_ping(char *args[]) {
 // Signal handler for SIGINT (Ctrl-C)
 void handle_sigint(int sig) {
     if (foreground_pid > 0) {
-        // If there is a foreground process, send it the SIGINT signal
+        // Send SIGINT to the foreground process
         kill(foreground_pid, SIGINT);
     } else {
-        // If no foreground process is running, do nothing (prevents shell from exiting)
         printf("\nNo foreground process to interrupt\n");
-        fflush(stdout);  // Ensure the prompt is re-displayed correctly
     }
 }
 
 // Signal handler for SIGTSTP (Ctrl-Z)
 void handle_sigtstp(int sig) {
     if (foreground_pid > 0) {
-        // Send SIGTSTP to the foreground process to suspend it
+        // Send SIGTSTP to the foreground process
         kill(foreground_pid, SIGTSTP);
-        update_process_state(foreground_pid, 0, 0);  // Mark process as stopped
-        printf("\nForeground process stopped\n");
+        update_process_state(foreground_pid, 0, 1); // Mark the process as stopped and in background
+        printf("\nForeground process stopped and moved to background\n");
     } else {
         printf("\nNo foreground process to stop\n");
     }
 }
 
 // Signal handler for SIGQUIT (Ctrl-D)
-void handle_sigquit(int sig) {
+void handle_ctrl_d() {
     printf("\nExiting shell\n");
-    // Add logic to kill any background processes here if necessary
+    // Add logic to kill all child processes if needed
     exit(0);
 }
 
 // Set up signal handlers for Ctrl-C, Ctrl-Z, and Ctrl-D
 void setup_signal_handlers() {
-    struct sigaction sa;
-
-    // SIGINT (Ctrl-C) handler
-    sa.sa_handler = handle_sigint;
-    sigemptyset(&sa.sa_mask);
-    sa.sa_flags = SA_RESTART;
-    sigaction(SIGINT, &sa, NULL);
-
-    // SIGTSTP (Ctrl-Z) handler
-    sa.sa_handler = handle_sigtstp;
-    sigaction(SIGTSTP, &sa, NULL);
-
-    // SIGQUIT (Ctrl-D) handler
-    sa.sa_handler = handle_sigquit;
-    sigaction(SIGQUIT, &sa, NULL);
+    signal(SIGINT, handle_sigint);    // Handle Ctrl-C
+    signal(SIGTSTP, handle_sigtstp);  // Handle Ctrl-Z
+    // signal(SIGQUIT, handle_sigquit);  // Handle Ctrl-D
 }
 

@@ -6,8 +6,7 @@
 
 int get_input(char *input, size_t size) {
     if (fgets(input, size, stdin) == NULL) {
-        perror("fgets() error");
-        return 0;
+        exit(0);
     }
 
     // Remove trailing newline character

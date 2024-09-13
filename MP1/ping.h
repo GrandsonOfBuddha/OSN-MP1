@@ -8,6 +8,6 @@ void execute_ping(char *args[]);
 void setup_signal_handlers();
 void handle_sigint(int sig);
 void handle_sigtstp(int sig);
-void handle_sigquit(int sig);
+void handle_ctrl_d();
 
 #endif

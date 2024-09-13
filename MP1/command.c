@@ -207,7 +207,7 @@ void execute_command(char *input)
     }
     else if (strcmp(args[0], "iMan") == 0)
     {
-        execute_iman(args); // Call iMan command
+        fetch_man_page(args); // Call iMan command
         return;             // Exit after executing iMan
     }
 
@@ -288,6 +288,11 @@ void execute_command(char *input)
 
 void process_input(char *input)
 {
+    // Check if fgets or the input reading function returned NULL (Ctrl+D is pressed)
+    if (input == NULL) {
+        handle_ctrl_d();
+    }
+
     char *command;
     char *rest = input;
 
@@ -318,6 +323,7 @@ void process_input(char *input)
         }
     }
 }
+
 
 void execute_background_command(char *command)
 {

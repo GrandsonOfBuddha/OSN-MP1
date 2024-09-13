@@ -4,7 +4,7 @@
 #include <unistd.h>  // For chdir and getcwd
 #include <sys/stat.h>
 #include "myshrc.h"
-#include "command.h"  // Include to execute the original command functions
+#include "command.h" 
 #include "reveal.h"   // For reveal command
 #include "seek.h"     // For seek command
 #include "hop.h"      // For hop functions

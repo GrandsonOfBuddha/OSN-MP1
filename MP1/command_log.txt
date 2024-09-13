@@ -1,15 +1,15 @@
-seek newfolder ./doe
-seek -d newfolder ./doe
-seek -f newfolder ./doe
-seek newfolder ./john
-seek -d -f newfolder ./doe
-seek -e -f newfolder ./doe
-seek -e -d newfolder ./doe
-hop_seek ~
-mk_hop testdir2
-hop_seek testdir
-hop stdir2
-hop testdir2
-mk_hop testdir3
-hop_reveal testdir
+iMan sleep extrsa
+activities
+iMan exec
+iMan sleep
+neonate -n 2
+sleep 15 &
+fg 18888
+sldknvsldknfs
 hop_reveal ~
+mk_hop newdirectory
+hop ~
+iMan sleep extra
+sleep 10
+sleep
+make clean

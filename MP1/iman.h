@@ -1,6 +1,7 @@
 #ifndef IMAN_H
 #define IMAN_H
 
-void execute_iman(char *args[]);
+// Function to fetch and display the man page for the specified command
+void fetch_man_page(const char *command_name);
 
 #endif // IMAN_H

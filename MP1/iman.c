@@ -1,98 +1,73 @@
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
+#include <stdlib.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <netdb.h>
 #include <unistd.h>
-#include <arpa/inet.h>
+#include "iman.h"
 
-#define BUFFER_SIZE 4096
+#define BUFFER_SIZE 8192
 
-// Helper function to skip the HTTP headers and return the content start
-char *skip_http_headers(char *response) {
-    char *header_end = strstr(response, "\r\n\r\n");
-    if (header_end) {
-        return header_end + 4;  // Skip over the header
-    }
-    return response;  // Return full response if no header found
-}
-
-void execute_iman(char *args[]) {
-    if (args[1] == NULL) {
-        printf("Usage: iMan <command>\n");
-        return;
-    }
-
-    char *command = args[1];
-
-    // Establish socket connection
+void fetch_man_page(const char *command_name) {
     int sockfd;
-    struct sockaddr_in server_addr;
-    char send_buffer[BUFFER_SIZE], recv_buffer[BUFFER_SIZE];
+    struct sockaddr_in serveraddr;
+    struct hostent *server;
+    char buffer[BUFFER_SIZE];
+    char request[1024];
 
-    // Create socket
+    // Create the socket
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
     if (sockfd < 0) {
-        perror("Error creating socket");
+        perror("ERROR opening socket");
         return;
     }
-
-    // Setup server address for man7.org (using HTTPS requires SSL but we will use HTTP for this example)
-    server_addr.sin_family = AF_INET;
-    server_addr.sin_port = htons(80);  // HTTP port
-
-    // Use the IP address for man7.org (you can resolve it via DNS or hard-code it here)
-    if (inet_pton(AF_INET, "88.198.57.23", &server_addr.sin_addr) <= 0) {
-        perror("Invalid address");
+    
+    // Get the server's DNS entry
+    server = gethostbyname("man.he.net");
+    if (server == NULL) {
+        fprintf(stderr, "ERROR, no such host\n");
         close(sockfd);
         return;
     }
+
+    // Build the server's Internet address
+    bzero((char *) &serveraddr, sizeof(serveraddr));
+    serveraddr.sin_family = AF_INET;
+    bcopy((char *)server->h_addr, 
+          (char *)&serveraddr.sin_addr.s_addr, server->h_length);
+    serveraddr.sin_port = htons(80);
 
     // Connect to the server
-    if (connect(sockfd, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0) {
-        perror("Connection failed");
+    if (connect(sockfd, (struct sockaddr *) &serveraddr, sizeof(serveraddr)) < 0) {
+        perror("ERROR connecting");
         close(sockfd);
         return;
     }
+    
+    // Construct the HTTP request
+    snprintf(request, sizeof(request), "GET /cgi-bin/man.cgi?topic=%s HTTP/1.1\r\nHost: man.he.net\r\nConnection: close\r\n\r\n", command_name);
 
-    // Prepare the HTTP GET request for the new man page
-    snprintf(send_buffer, sizeof(send_buffer),
-             "GET /linux/man-pages/man3/%s.3.html HTTP/1.1\r\n"
-             "Host: man7.org\r\n"
-             "Connection: close\r\n\r\n",
-             command);
-
-    // Send the request
-    if (send(sockfd, send_buffer, strlen(send_buffer), 0) < 0) {
-        perror("Error sending request");
+    // Send the HTTP request to the server
+    if (write(sockfd, request, strlen(request)) < 0) {
+        perror("ERROR writing to socket");
         close(sockfd);
         return;
     }
-
-    // Read the response and print content after skipping the header
-    int received;
-    int header_done = 0;
-    char *content_start = NULL;
-
-    while ((received = recv(sockfd, recv_buffer, sizeof(recv_buffer) - 1, 0)) > 0) {
-        recv_buffer[received] = '\0';  // Null-terminate the response
-
-        if (!header_done) {
-            // Check for the end of the HTTP header and start of content
-            content_start = skip_http_headers(recv_buffer);
-            if (content_start) {
-                header_done = 1;
-                printf("%s", content_start);  // Print content after headers
-            }
-        } else {
-            printf("%s", recv_buffer);  // Print remaining content
-        }
+    
+    // Read and print the server's reply
+    bzero(buffer, BUFFER_SIZE);
+    int read_bytes;
+    while ((read_bytes = read(sockfd, buffer, BUFFER_SIZE - 1)) > 0) {
+        printf("%s", buffer);
+        bzero(buffer, BUFFER_SIZE);
     }
-
-    if (received == 0) {
-        printf("\n[End of man page]\n");
-    } else if (received < 0) {
-        perror("Error receiving data");
+    
+    if (read_bytes < 0) {
+        perror("ERROR reading from socket");
     }
 
     // Close the socket
     close(sockfd);
 }
+
