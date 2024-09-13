@@ -1,15 +1,15 @@
-echo "hellow world" > newfile.txt
-cat newfile.txt
-wc < a.txt
-wc < newfile.txt
-wc <newfile.txt > a.txt
-wc < newfile.txt > a.txt
-echo "lorem ipsum" | wc
-cat < a.txt | wc | cat > b.txt
-cat b.txt
-cat a.txt
-echo Lorem Ipsum > a.txt
-iMan sleep
-neonate -n 5
-x
-sleep 10
+seek newfolder ./doe
+seek -d newfolder ./doe
+seek -f newfolder ./doe
+seek newfolder ./john
+seek -d -f newfolder ./doe
+seek -e -f newfolder ./doe
+seek -e -d newfolder ./doe
+hop_seek ~
+mk_hop testdir2
+hop_seek testdir
+hop stdir2
+hop testdir2
+mk_hop testdir3
+hop_reveal testdir
+hop_reveal ~

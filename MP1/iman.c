@@ -3,18 +3,16 @@
 #include <string.h>
 #include <unistd.h>
 #include <arpa/inet.h>
-#include <fcntl.h> // for fcntl and non-blocking
-#include "iman.h"
 
 #define BUFFER_SIZE 4096
 
-// Helper function to skip the HTTP headers
+// Helper function to skip the HTTP headers and return the content start
 char *skip_http_headers(char *response) {
     char *header_end = strstr(response, "\r\n\r\n");
     if (header_end) {
         return header_end + 4;  // Skip over the header
     }
-    return NULL;
+    return response;  // Return full response if no header found
 }
 
 void execute_iman(char *args[]) {
@@ -37,10 +35,12 @@ void execute_iman(char *args[]) {
         return;
     }
 
-    // Setup server address
+    // Setup server address for man7.org (using HTTPS requires SSL but we will use HTTP for this example)
     server_addr.sin_family = AF_INET;
     server_addr.sin_port = htons(80);  // HTTP port
-    if (inet_pton(AF_INET, "72.52.122.98", &server_addr.sin_addr) <= 0) {
+
+    // Use the IP address for man7.org (you can resolve it via DNS or hard-code it here)
+    if (inet_pton(AF_INET, "88.198.57.23", &server_addr.sin_addr) <= 0) {
         perror("Invalid address");
         close(sockfd);
         return;
@@ -53,12 +53,11 @@ void execute_iman(char *args[]) {
         return;
     }
 
-    // Prepare the HTTP GET request for the man page
+    // Prepare the HTTP GET request for the new man page
     snprintf(send_buffer, sizeof(send_buffer),
-             "GET /cgi-bin/man.cgi?query=%s HTTP/1.1\r\n"
-             "Host: man.he.net\r\n"
-             "Connection: close\r\n"
-             "\r\n",
+             "GET /linux/man-pages/man3/%s.3.html HTTP/1.1\r\n"
+             "Host: man7.org\r\n"
+             "Connection: close\r\n\r\n",
              command);
 
     // Send the request
@@ -68,7 +67,7 @@ void execute_iman(char *args[]) {
         return;
     }
 
-    // Read the response
+    // Read the response and print content after skipping the header
     int received;
     int header_done = 0;
     char *content_start = NULL;
@@ -81,7 +80,7 @@ void execute_iman(char *args[]) {
             content_start = skip_http_headers(recv_buffer);
             if (content_start) {
                 header_done = 1;
-                printf("%s", content_start);  // Print the content after the header
+                printf("%s", content_start);  // Print content after headers
             }
         } else {
             printf("%s", recv_buffer);  // Print remaining content
@@ -89,7 +88,6 @@ void execute_iman(char *args[]) {
     }
 
     if (received == 0) {
-        // Connection closed by the server
         printf("\n[End of man page]\n");
     } else if (received < 0) {
         perror("Error receiving data");
